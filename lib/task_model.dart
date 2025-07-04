@@ -1,4 +1,3 @@
-import 'package:intl/intl.dart';
 import 'task_status.dart';
 
 class TaskCreateRequest {
@@ -53,7 +52,7 @@ class TaskResponse {
   final String description;
   final DateTime startDate;
   final DateTime endDate;
-  final TaskStatus status;
+  final bool isCompleted;
 
   TaskResponse({
     required this.id,
@@ -61,8 +60,17 @@ class TaskResponse {
     required this.description,
     required this.startDate,
     required this.endDate,
-    required this.status,
+    required this.isCompleted,
   });
+
+  TaskStatus get status {
+    if (isCompleted) return TaskStatus.COMPLETED;
+
+    final now = DateTime.now();
+    if (endDate.isBefore(now)) return TaskStatus.OVERDUE;
+    if (startDate.isBefore(now)) return TaskStatus.ONGOING;
+    return TaskStatus.UPCOMING;
+  }
 
   factory TaskResponse.fromMap(Map<String, dynamic> map) {
     return TaskResponse(
@@ -71,7 +79,7 @@ class TaskResponse {
       description: map['description'],
       startDate: DateTime.parse(map['startDate']),
       endDate: DateTime.parse(map['endDate']),
-      status: TaskStatus.fromString(map['status']),
+      isCompleted: map['isCompleted'] == 1,
     );
   }
 
@@ -82,10 +90,7 @@ class TaskResponse {
       'description': description,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
-      'status': status.toString().split('.').last,
+      'isCompleted': isCompleted ? 1 : 0,
     };
   }
-
-  String get formattedStartDate => DateFormat('dd/MM/yyyy HH:mm').format(startDate);
-  String get formattedEndDate => DateFormat('dd/MM/yyyy HH:mm').format(endDate);
 }

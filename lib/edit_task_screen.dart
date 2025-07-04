@@ -2,6 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 
+// Handles date and time picking logic
+class DateTimePickerService {
+  static Future<DateTime?> pickDateTime(
+      BuildContext context,
+      DateTime initialDate, {
+        DateTime? firstDate,
+      }) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate ?? DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (date == null) return null;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+    );
+    if (time == null) return null;
+
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+  }
+}
+
 class EditTaskScreen extends StatefulWidget {
   final TaskResponse task;
 
@@ -12,14 +43,16 @@ class EditTaskScreen extends StatefulWidget {
 }
 
 class _EditTaskScreenState extends State<EditTaskScreen> {
-  late final _titleController = TextEditingController(text: widget.task.title);
-  late final _descriptionController = TextEditingController(text: widget.task.description);
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
   late DateTime _startDate;
   late DateTime _endDate;
 
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: widget.task.title);
+    _descriptionController = TextEditingController(text: widget.task.description);
     _startDate = widget.task.startDate;
     _endDate = widget.task.endDate;
   }
@@ -31,56 +64,62 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     super.dispose();
   }
 
-  Future<void> _selectStartDate(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+  Future<void> _selectStartDate() async {
+    final pickedDate = await DateTimePickerService.pickDateTime(
+      context,
+      _startDate,
     );
     if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_startDate),
-      );
-      if (pickedTime != null) {
-        setState(() {
-          _startDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-        });
-      }
+      setState(() => _startDate = pickedDate);
     }
   }
 
-  Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _endDate,
+  Future<void> _selectEndDate() async {
+    final pickedDate = await DateTimePickerService.pickDateTime(
+      context,
+      _endDate,
       firstDate: _startDate,
-      lastDate: DateTime(2100),
     );
     if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_endDate),
-      );
-      if (pickedTime != null) {
-        setState(() {
-          _endDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-        });
-      }
+      setState(() => _endDate = pickedDate);
     }
+  }
+
+  void _saveChanges() {
+    Navigator.pop(context, TaskUpdateRequest(
+      title: _titleController.text,
+      description: _descriptionController.text,
+      startDate: _startDate,
+      endDate: _endDate,
+    ));
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+      ),
+      maxLines: maxLines,
+    );
+  }
+
+  Widget _buildDateTile({
+    required String label,
+    required DateTime date,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      title: Text(label),
+      subtitle: Text(DateFormat('dd/MM/yyyy').format(date)),
+      trailing: Icon(Icons.calendar_today),
+      onTap: onTap,
+    );
   }
 
   @override
@@ -99,49 +138,30 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            TextField(
+            _buildInputField(
               controller: _titleController,
-              decoration: InputDecoration(
-                labelText: 'Task Title',
-                border: OutlineInputBorder(),
-              ),
+              label: 'Task Title',
             ),
             SizedBox(height: 16),
-            TextField(
+            _buildInputField(
               controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
+              label: 'Description',
               maxLines: 3,
             ),
             SizedBox(height: 16),
-            ListTile(
-              title: Text('Start Date'),
-              subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_startDate)),
-              trailing: Icon(Icons.calendar_today),
-              onTap: () => _selectStartDate(context),
+            _buildDateTile(
+              label: 'Start Date',
+              date: _startDate,
+              onTap: _selectStartDate,
             ),
-            ListTile(
-              title: Text('End Date'),
-              subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_endDate)),
-              trailing: Icon(Icons.calendar_today),
-              onTap: () => _selectEndDate(context),
+            _buildDateTile(
+              label: 'End Date',
+              date: _endDate,
+              onTap: _selectEndDate,
             ),
           ],
         ),
       ),
     );
-  }
-
-  void _saveChanges() {
-    final updatedTask = TaskUpdateRequest(
-      title: _titleController.text,
-      description: _descriptionController.text,
-      startDate: _startDate,
-      endDate: _endDate,
-    );
-
-    Navigator.pop(context, updatedTask);
   }
 }

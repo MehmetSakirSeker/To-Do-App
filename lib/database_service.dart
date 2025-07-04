@@ -4,95 +4,65 @@ import 'package:path_provider/path_provider.dart';
 import 'task_model.dart';
 import 'task_status.dart';
 
-class DatabaseService {
-  static const _databaseName = 'todobase.db';
-  static const _databaseVersion = 1;
-
+// Database config
+class DatabaseConstants {
+  static const databaseName = 'todobase.db';
+  static const databaseVersion = 3;
   static const tableTasks = 'tasks';
 
-  DatabaseService._privateConstructor();
-  static final DatabaseService instance = DatabaseService._privateConstructor();
+  static const columnId = 'id';
+  static const columnTitle = 'title';
+  static const columnDescription = 'description';
+  static const columnStartDate = 'startDate';
+  static const columnEndDate = 'endDate';
+  static const columnIsCompleted = 'isCompleted';
+}
 
-  static Database? _database;
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+// Handles all CRUD database operations and Business logic
+class TaskRepository {
+  final DatabaseService dbService;
+
+  TaskRepository(this.dbService);
+
+  Future<List<TaskResponse>> getAllTasks() async {
+    final db = await dbService.database;
+    final List<Map<String, dynamic>> maps =
+    await db.query(DatabaseConstants.tableTasks);
+    return maps.map((map) => TaskResponse.fromMap(map)).toList();
   }
 
-  Future<Database> _initDatabase() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = join(directory.path, _databaseName);
-    return await openDatabase(
-      path,
-      version: _databaseVersion,
-      onCreate: _onCreate,
-    );
+  Future<List<TaskResponse>> getTasksByStatus(TaskStatus status) async {
+    final allTasks = await getAllTasks();
+    return allTasks.where((task) => task.status == status).toList();
   }
 
-  Future _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE $tableTasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        startDate TEXT NOT NULL,
-        endDate TEXT NOT NULL,
-        status TEXT NOT NULL
-      )
-    ''');
-  }
-
-  // CRUD Operations
-
-  Future<List<TaskResponse>> listTasks() async {
-    final db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(tableTasks);
-    return List.generate(maps.length, (i) => TaskResponse.fromMap(maps[i]));
-  }
-
-  Future<List<TaskResponse>> listTasksByStatus(TaskStatus status) async {
-    final db = await instance.database;
+  Future<TaskResponse> getTaskById(String taskId) async {
+    final db = await dbService.database;
     final List<Map<String, dynamic>> maps = await db.query(
-      tableTasks,
-      where: 'status = ?',
-      whereArgs: [status.toString().split('.').last],
-      orderBy: 'endDate ASC',
-    );
-    return List.generate(maps.length, (i) => TaskResponse.fromMap(maps[i]));
-  }
-
-  Future<TaskResponse> getTask(String taskId) async {
-    final db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      tableTasks,
-      where: 'id = ?',
+      DatabaseConstants.tableTasks,
+      where: '${DatabaseConstants.columnId} = ?',
       whereArgs: [taskId],
+      limit: 1,
     );
-    if (maps.isNotEmpty) {
-      return TaskResponse.fromMap(maps.first);
-    } else {
-      throw Exception('Task not found');
+
+    if (maps.isEmpty) {
+      throw Exception('Task with id $taskId not found');
     }
+    return TaskResponse.fromMap(maps.first);
   }
 
   Future<TaskResponse> createTask(TaskCreateRequest request) async {
-    final db = await instance.database;
-
-    // Determine initial status based on dates
-    final now = DateTime.now();
-    final status = now.isAfter(request.endDate)
-        ? TaskStatus.OVERDUE
-        : TaskStatus.UPCOMING;
-
+    final db = await dbService.database;
     final id = await db.insert(
-      tableTasks,
+      DatabaseConstants.tableTasks,
       {
-        ...request.toMap(),
-        'status': status.toString().split('.').last,
+        DatabaseConstants.columnTitle: request.title,
+        DatabaseConstants.columnDescription: request.description,
+        DatabaseConstants.columnStartDate: request.startDate.toIso8601String(),
+        DatabaseConstants.columnEndDate: request.endDate.toIso8601String(),
+        DatabaseConstants.columnIsCompleted: 0,
       },
     );
-
 
     return TaskResponse(
       id: id.toString(),
@@ -100,61 +70,83 @@ class DatabaseService {
       description: request.description,
       startDate: request.startDate,
       endDate: request.endDate,
-      status: status,
+      isCompleted: false,
     );
   }
-
 
   Future<TaskResponse> updateTask(String taskId, TaskUpdateRequest request) async {
-    final db = await instance.database;
-
-    final currentTask = await getTask(taskId);
-
-    final now = DateTime.now();
-    final newStatus = now.isAfter(request.endDate)
-        ? TaskStatus.OVERDUE
-        : (currentTask.status == TaskStatus.COMPLETED
-        ? TaskStatus.COMPLETED
-        : TaskStatus.UPCOMING);
-
+    final db = await dbService.database;
     await db.update(
-      tableTasks,
+      DatabaseConstants.tableTasks,
       {
-        'title': request.title,
-        'description': request.description,
-        'startDate': request.startDate.toIso8601String(),
-        'endDate': request.endDate.toIso8601String(),
-        'status': newStatus.toString().split('.').last,
+        DatabaseConstants.columnTitle: request.title,
+        DatabaseConstants.columnDescription: request.description,
+        DatabaseConstants.columnStartDate: request.startDate.toIso8601String(),
+        DatabaseConstants.columnEndDate: request.endDate.toIso8601String(),
       },
-      where: 'id = ?',
+      where: '${DatabaseConstants.columnId} = ?',
       whereArgs: [taskId],
     );
-
-    return getTask(taskId);
+    return getTaskById(taskId);
   }
 
-  Future<TaskResponse> completeTask(String taskId) async {
-    final db = await instance.database;
+  Future<TaskResponse> completeTask(String taskId, bool isCompleted) async {
+    final db = await dbService.database;
     await db.update(
-      tableTasks,
-      {'status': TaskStatus.COMPLETED.toString().split('.').last},
-      where: 'id = ?',
+      DatabaseConstants.tableTasks,
+      {DatabaseConstants.columnIsCompleted: isCompleted ? 1 : 0},
+      where: '${DatabaseConstants.columnId} = ?',
       whereArgs: [taskId],
     );
-    return getTask(taskId);
+    return getTaskById(taskId);
   }
 
   Future<void> deleteTask(String taskId) async {
-    final db = await instance.database;
+    final db = await dbService.database;
     await db.delete(
-      tableTasks,
-      where: 'id = ?',
+      DatabaseConstants.tableTasks,
+      where: '${DatabaseConstants.columnId} = ?',
       whereArgs: [taskId],
     );
   }
+}
+
+// Handles database initialization and connection management
+class DatabaseService {
+
+  //Singelton for accesing db
+  DatabaseService._privateConstructor();
+  static final DatabaseService instance = DatabaseService._privateConstructor();
+
+  static Database? _database;
+  Future<Database> get database async => _database ??= await _initDatabase();
+
+  Future<Database> _initDatabase() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = join(directory.path, DatabaseConstants.databaseName);
+
+    return await openDatabase(
+      path,
+      version: DatabaseConstants.databaseVersion,
+      onCreate: _onCreate,
+    );
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE ${DatabaseConstants.tableTasks} (
+        ${DatabaseConstants.columnId} INTEGER PRIMARY KEY AUTOINCREMENT,
+        ${DatabaseConstants.columnTitle} TEXT NOT NULL,
+        ${DatabaseConstants.columnDescription} TEXT,
+        ${DatabaseConstants.columnStartDate} TEXT NOT NULL,
+        ${DatabaseConstants.columnEndDate} TEXT NOT NULL,
+        ${DatabaseConstants.columnIsCompleted} INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+  }
 
   Future<void> close() async {
-    final db = await instance.database;
+    final db = await database;
     await db.close();
   }
 }

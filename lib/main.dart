@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:todo/task_status.dart';
 import 'edit_task_screen.dart';
 import 'task_model.dart';
@@ -17,6 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Todo App',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: TodoScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -31,7 +33,7 @@ class _TodoScreenState extends State<TodoScreen> {
   final DatabaseService dbService = DatabaseService.instance;
   List<TaskResponse> tasks = [];
   TaskStatus? currentFilter;
-
+  final TaskRepository taskRepository = TaskRepository(DatabaseService.instance);
   @override
   void initState() {
     super.initState();
@@ -39,7 +41,7 @@ class _TodoScreenState extends State<TodoScreen> {
   }
 
   Future<void> _loadTasks() async {
-    final allTasks = await dbService.listTasks();
+    final allTasks = await taskRepository.getAllTasks();
     setState(() => tasks = allTasks);
   }
 
@@ -49,7 +51,7 @@ class _TodoScreenState extends State<TodoScreen> {
     if (status == null) {
       _loadTasks();
     } else {
-      final filteredTasks = await dbService.listTasksByStatus(status);
+      final filteredTasks = await taskRepository.getTasksByStatus(status);
       setState(() => tasks = filteredTasks);
     }
   }
@@ -120,8 +122,8 @@ class _TodoScreenState extends State<TodoScreen> {
           children: [
             if (task.description.isNotEmpty) Text(task.description),
             SizedBox(height: 4),
-            Text('Start: ${task.formattedStartDate}'),
-            Text('End: ${task.formattedEndDate}'),
+            Text('Start: ${DateFormat('dd.MM.yyyy').format(task.startDate)}'),
+            Text('End: ${DateFormat('dd.MM.yyyy').format(task.endDate)}'),
           ],
         ),
         trailing: Row(
@@ -160,7 +162,7 @@ class _TodoScreenState extends State<TodoScreen> {
     );
 
     if (updatedTask != null) {
-      await dbService.updateTask(task.id, updatedTask);
+      await taskRepository.updateTask(task.id, updatedTask);
       _filterTasks(currentFilter);
     }
   }
@@ -175,21 +177,19 @@ class _TodoScreenState extends State<TodoScreen> {
         return Colors.red;
       case TaskStatus.COMPLETED:
         return Colors.green;
-      case null:
-        return Colors.grey;
       default:
         return Colors.grey;
     }
   }
 
   Future<void> _completeTask(String taskId) async {
-    await dbService.completeTask(taskId);
-    _filterTasks(currentFilter); // Mevcut filtreyi koru
+    await taskRepository.completeTask(taskId,true);
+    _filterTasks(currentFilter);
   }
 
   Future<void> _deleteTask(String taskId) async {
-    await dbService.deleteTask(taskId);
-    _filterTasks(currentFilter); // Mevcut filtreyi koru
+    await taskRepository.deleteTask(taskId);
+    _filterTasks(currentFilter);
   }
 
   Future<void> _navigateToAddTask() async {
@@ -199,7 +199,7 @@ class _TodoScreenState extends State<TodoScreen> {
     );
 
     if (newTask != null) {
-      _filterTasks(currentFilter); // Mevcut filtreyi koru
+      _filterTasks(currentFilter);
     }
   }
 }
