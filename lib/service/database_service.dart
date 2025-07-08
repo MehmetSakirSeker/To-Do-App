@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'task_model.dart';
-import 'task_status.dart';
+import '../model/task_model.dart';
+import '../model/task_status.dart';
 
 // Database config
 class DatabaseConstants {
@@ -26,8 +26,9 @@ class TaskRepository {
 
   Future<List<TaskResponse>> getAllTasks() async {
     final db = await dbService.database;
-    final List<Map<String, dynamic>> maps =
-    await db.query(DatabaseConstants.tableTasks);
+    final List<Map<String, dynamic>> maps = await db.query(
+      DatabaseConstants.tableTasks,
+    );
     return maps.map((map) => TaskResponse.fromMap(map)).toList();
   }
 
@@ -53,16 +54,13 @@ class TaskRepository {
 
   Future<TaskResponse> createTask(TaskCreateRequest request) async {
     final db = await dbService.database;
-    final id = await db.insert(
-      DatabaseConstants.tableTasks,
-      {
-        DatabaseConstants.columnTitle: request.title,
-        DatabaseConstants.columnDescription: request.description,
-        DatabaseConstants.columnStartDate: request.startDate.toIso8601String(),
-        DatabaseConstants.columnEndDate: request.endDate.toIso8601String(),
-        DatabaseConstants.columnIsCompleted: 0,
-      },
-    );
+    final id = await db.insert(DatabaseConstants.tableTasks, {
+      DatabaseConstants.columnTitle: request.title,
+      DatabaseConstants.columnDescription: request.description,
+      DatabaseConstants.columnStartDate: request.startDate.toIso8601String(),
+      DatabaseConstants.columnEndDate: request.endDate.toIso8601String(),
+      DatabaseConstants.columnIsCompleted: 0,
+    });
 
     return TaskResponse(
       id: id.toString(),
@@ -74,7 +72,10 @@ class TaskRepository {
     );
   }
 
-  Future<TaskResponse> updateTask(String taskId, TaskUpdateRequest request) async {
+  Future<TaskResponse> updateTask(
+    String taskId,
+    TaskUpdateRequest request,
+  ) async {
     final db = await dbService.database;
     await db.update(
       DatabaseConstants.tableTasks,
@@ -113,12 +114,13 @@ class TaskRepository {
 
 // Handles database initialization and connection management
 class DatabaseService {
-
   //Singelton for accesing db
   DatabaseService._privateConstructor();
+
   static final DatabaseService instance = DatabaseService._privateConstructor();
 
   static Database? _database;
+
   Future<Database> get database async => _database ??= await _initDatabase();
 
   Future<Database> _initDatabase() async {

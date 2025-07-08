@@ -34,6 +34,7 @@ dependencies:
   path_provider: ^2.1.1  # Dosya yolu işlemleri için
   path: ^1.8.3  # Path işlemleri için (opsiyonel ama faydalı)
   intl: ^0.18.1  # Tarih işlemleri için
+  get:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
