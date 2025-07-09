@@ -31,48 +31,49 @@ class EditTaskScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = EditTaskController.to;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Update Task'),
         actions: [
           IconButton(
             icon: Icon(Icons.save),
-            onPressed: () => EditTaskController.to.saveChanges(context),
+            onPressed: () => controller.saveChanges(context),
           ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Obx(
-              () => ListView(
-            children: [
-              _buildInputField(
-                controller: EditTaskController.to.titleController,
-                label: 'Task Title',
-              ),
-              SizedBox(height: 16),
-              _buildInputField(
-                controller: EditTaskController.to.descriptionController,
-                label: 'Description',
-                maxLines: 3,
-              ),
-              SizedBox(height: 16),
-              _buildDateTile(
-                label: 'Start Date',
-                date: EditTaskController.to.startDate.value!,
-                onTap: () => EditTaskController.to.pickStartDate(context),
-              ),
-              _buildDateTile(
-                label: 'End Date',
-                date: EditTaskController.to.endDate.value!,
-                onTap: () => EditTaskController.to.pickEndDate(context),
-              ),
-            ],
-          ),
+        child: ListView(
+          children: [
+            _buildInputField(
+              controller: controller.titleController,
+              label: 'Task Title',
+            ),
+            SizedBox(height: 16),
+            _buildInputField(
+              controller: controller.descriptionController,
+              label: 'Description',
+              maxLines: 3,
+            ),
+            SizedBox(height: 16),
+            Obx(() => _buildDateTile(
+              label: 'Start Date',
+              date: controller.startDate.value!,
+              onTap: () => controller.pickStartDate(context),
+            )),
+            Obx(() => _buildDateTile(
+              label: 'End Date',
+              date: controller.endDate.value!,
+              onTap: () => controller.pickEndDate(context),
+            )),
+          ],
         ),
       ),
     );
   }
+
 
   Widget _buildInputField({
     required TextEditingController controller,
@@ -88,6 +89,7 @@ class EditTaskScreen extends StatelessWidget {
       maxLines: maxLines,
     );
   }
+
 
   Widget _buildDateTile({
     required String label,

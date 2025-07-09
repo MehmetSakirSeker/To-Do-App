@@ -66,7 +66,7 @@ class AddTaskScreen extends StatelessWidget {
                     style: TextStyle(fontSize: 16),
                   );
                 }
-                return SizedBox.shrink();
+                return SizedBox.shrink();//for returning nothing like null
               }),
             ],
           ),

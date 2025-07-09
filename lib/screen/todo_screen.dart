@@ -11,6 +11,8 @@ import 'add_task_screen.dart';
 import 'edit_task_screen.dart';
 
 class TodoScreen extends StatelessWidget {
+
+
   TodoScreen({super.key}) {
     Get.put(TodoController());
   }
@@ -22,19 +24,17 @@ class TodoScreen extends StatelessWidget {
       body: Column(
         children: [
           Divider(),
-          Obx(
-                () => Expanded(
-              child: TodoController.to.tasks.isEmpty
-                  ? Center(child: Text('No To-Do Found'))
-                  : ListView.builder(
-                itemCount: TodoController.to.tasks.length,
-                itemBuilder: (context, index) {
-                  final task = TodoController.to.tasks[index];
-                  return _buildTaskCard(task, context);
-                },
-              ),
-            ),
+          Expanded(
+            child: Obx(() {
+              final tasks = TodoController.to.tasks;
+              if (tasks.isEmpty) return Center(child: Text('No To-Do Found'));
+              return ListView.builder(
+                itemCount: tasks.length,
+                itemBuilder: (context, index) => _buildTaskCard(tasks[index], context),
+              );
+            }),
           ),
+
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -61,20 +61,23 @@ class TodoScreen extends StatelessWidget {
   }
 
   Widget _buildIconFilter(TaskStatus? status, IconData icon) {
-    final isActive = TodoController.to.currentFilter.value == status;
-    return InkWell(
-      onTap: () => TodoController.to.filterTasks(status),
-      child: Container(
-        padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isActive ? _getStatusColor(status) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
+    return Obx(() {
+      final isActive = TodoController.to.currentFilter.value == status;
+      return InkWell(
+        onTap: () => TodoController.to.filterTasks(status),
+        child: Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isActive ? _getStatusColor(status) : Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon,
+              color: isActive ? Colors.white : Colors.black),
         ),
-        child: Icon(icon,
-            color: isActive ? Colors.white : Colors.black),
-      ),
-    );
+      );
+    });
   }
+
 
   Widget _buildCircleFilter(TaskStatus? status, IconData icon) {
     final isActive = TodoController.to.currentFilter.value == status;
@@ -91,24 +94,6 @@ class TodoScreen extends StatelessWidget {
     );
   }
 
-
-  // Old button styles
-  // Widget _buildFilterButton(TaskStatus? status, String text) {
-  //   final isActive = TodoController.to.currentFilter.value == status;
-  //   return Padding(
-  //     padding: const EdgeInsets.all(4.0),
-  //     child: ElevatedButton(
-  //       style: ElevatedButton.styleFrom(
-  //         foregroundColor: isActive ? Colors.white : Colors.black,
-  //         backgroundColor: isActive
-  //             ? _getStatusColor(status)
-  //             : Colors.grey[300],
-  //       ),
-  //       onPressed: () => TodoController.to.filterTasks(status),
-  //       child: Text(text),
-  //     ),
-  //   );
-  // }
 
   Widget _buildTaskCard(TaskResponse task, BuildContext context) {
     return Card(

@@ -32,7 +32,7 @@ class TodoController extends GetxController {
     }
   }
   Future<void> markTaskIncomplete(String taskId) async {
-    await taskRepository.completeTask(taskId, false); // false yaparak tamamlanmadı yap
+    await taskRepository.completeTask(taskId, false);
     await filterTasks(currentFilter.value);
   }
 
@@ -42,6 +42,7 @@ class TodoController extends GetxController {
     await taskRepository.completeTask(taskId, true);
     await filterTasks(currentFilter.value);
   }
+
 
   Future<void> deleteTask(String taskId) async {
     await taskRepository.deleteTask(taskId);
