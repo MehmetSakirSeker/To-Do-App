@@ -67,7 +67,20 @@ class EditTaskScreen extends StatelessWidget {
               label: 'End Date',
               date: controller.endDate.value!,
               onTap: () => controller.pickEndDate(context),
-            )),
+            )
+            ),
+            Obx(() {
+              if (EditTaskController.to.startDate.value != null &&
+                  EditTaskController.to.endDate.value != null) {
+                return Text(
+                  EditTaskController.to.getDurationText(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                );
+              }
+              return SizedBox.shrink();//for returning nothing like null
+            }),
+
           ],
         ),
       ),

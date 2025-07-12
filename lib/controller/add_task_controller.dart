@@ -19,24 +19,40 @@ class AddTaskController extends GetxController {
   }
 
   Future<void> pickStartDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: startDate.value ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
 
-    if (picked != null) {
-      startDate.value = DateTime(picked.year, picked.month, picked.day);
-      if (endDate.value != null &&
-          !DateValidatorService.isEndDateAfterStartDate(
-            startDate.value!,
-            endDate.value!,
-          )) {
-        endDate.value = null;
+    if (pickedDate != null) {
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(startDate.value ?? DateTime.now()),
+      );
+
+      if (pickedTime != null) {
+        startDate.value = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        // Eğer bitiş tarihi varsa ve artık geçersizse sıfırla
+        if (endDate.value != null &&
+            !DateValidatorService.isEndDateAfterStartDate(
+              startDate.value!,
+              endDate.value!,
+            )) {
+          endDate.value = null;
+        }
       }
     }
   }
+
 
   Future<void> pickEndDate(BuildContext context) async {
     if (startDate.value == null) {
@@ -44,31 +60,53 @@ class AddTaskController extends GetxController {
       return;
     }
 
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: endDate.value ?? startDate.value!.add(Duration(days: 1)),
       firstDate: startDate.value!,
       lastDate: DateTime(2100),
     );
 
-    if (picked != null) {
-      endDate.value = DateTime(picked.year, picked.month, picked.day);
+    if (pickedDate != null) {
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(endDate.value ?? DateTime.now()),
+      );
+
+      if (pickedTime != null) {
+        endDate.value = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+      }
     }
   }
+
 
 
   String getDurationText() {
     if (startDate.value == null || endDate.value == null) return '';
     final duration = endDate.value!.difference(startDate.value!);
-    return 'Task Duration: ${duration.inDays} days, ${duration.inHours % 24} hours';
+    return 'Task Duration: ${duration.inDays} days, ${duration.inHours % 24} hours, ${duration.inMinutes % 60} minutes';
   }
+
 
   bool validateForm() {
     if (!formKey.currentState!.validate()) return false;
+
     if (startDate.value == null || endDate.value == null) {
       showError('Please select both start and end dates');
       return false;
     }
+
+    if (!DateValidatorService.isStartDateTodayOrLater(startDate.value!)) {
+      showError('Start date cannot be before today');
+      return false;
+    }
+
     if (!DateValidatorService.isEndDateAfterStartDate(
       startDate.value!,
       endDate.value!,
@@ -76,8 +114,10 @@ class AddTaskController extends GetxController {
       showError('End date cannot be before start date');
       return false;
     }
+
     return true;
   }
+
 
   Future<void> saveTask(BuildContext context) async {
     if (!validateForm()) return;

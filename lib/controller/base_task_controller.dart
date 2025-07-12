@@ -1,41 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+
 import '../screen/add_task_screen.dart';
-import '../screen/edit_task_screen.dart';
-import '../model/task_model.dart';
 
-class EditTaskController extends GetxController {
-  static EditTaskController get to => Get.find();
-
+abstract class BaseTaskController extends GetxController {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
 
   final startDate = Rxn<DateTime>();
   final endDate = Rxn<DateTime>();
-  final durationText = ''.obs;
 
-  late TaskResponse task;
-
-  void initialize(TaskResponse taskData) {
-    task = taskData;
-    titleController.text = task.title;
-    descriptionController.text = task.description ?? '';
-    startDate.value = task.startDate;
-    endDate.value = task.endDate;
-
-    durationText.value = getDurationText();
-
-    ever(startDate, (_) => durationText.value = getDurationText());
-    ever(endDate, (_) => durationText.value = getDurationText());
-
-  }
+  final formKey = GlobalKey<FormState>();
 
   String getDurationText() {
     if (startDate.value == null || endDate.value == null) return '';
     final duration = endDate.value!.difference(startDate.value!);
-    return 'Task Duration: ${duration.inDays} days, '
-        '${duration.inHours % 24} hours, '
-        '${duration.inMinutes % 60} minutes';
+    return 'Task Duration: ${duration.inDays} days, ${duration.inHours % 24} hours, ${duration.inMinutes % 60} minutes';
   }
 
   Future<void> pickStartDate(BuildContext context) async {
@@ -71,14 +52,6 @@ class EditTaskController extends GetxController {
       }
     }
   }
-  void showError(String message) {
-    Get.snackbar(
-      'Error',
-      message,
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-    );
-  }
 
   Future<void> pickEndDate(BuildContext context) async {
     if (startDate.value == null) {
@@ -111,15 +84,13 @@ class EditTaskController extends GetxController {
     }
   }
 
-  void saveChanges(BuildContext context) {
-    final updatedTask = TaskUpdateRequest(
-      title: titleController.text,
-      description: descriptionController.text,
-      startDate: startDate.value!,
-      endDate: endDate.value!,
+  void showError(String message) {
+    Get.snackbar(
+      'Error',
+      message,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
     );
-
-    Navigator.pop(context, updatedTask);
   }
 
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:todo/screen/todo_screen.dart';
+import 'package:todo_app/screen/todo_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

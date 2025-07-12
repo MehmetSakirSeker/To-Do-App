@@ -1,4 +1,4 @@
-import 'package:todo/model/task_status.dart';
+import 'package:todo_app/model/task_status.dart';
 
 class TaskCreateRequest {
   final String title;

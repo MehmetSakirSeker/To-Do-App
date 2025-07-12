@@ -9,6 +9,13 @@ class DateValidatorService {
   static bool isEndDateAfterStartDate(DateTime startDate, DateTime endDate) {
     return endDate.isAfter(startDate) || endDate.isAtSameMomentAs(startDate);
   }
+  static bool isStartDateTodayOrLater(DateTime startDate) {
+    final today = DateTime.now();
+    final normalizedStart = DateTime(startDate.year, startDate.month, startDate.day);
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+
+    return normalizedStart.isAtSameMomentAs(normalizedToday) || normalizedStart.isAfter(normalizedToday);
+  }
 }
 
 // Mapper service for task create request
@@ -31,7 +38,6 @@ class TaskRequestMapper {
 class AddTaskScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Controller'ı burda "put" ediyoruz ama .to ile erişiyoruz
     Get.put(AddTaskController());
 
     return Scaffold(
