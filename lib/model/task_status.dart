@@ -6,7 +6,6 @@ enum TaskStatus {
   OVERDUE,
   COMPLETED;
 
-  // UI da göstermek için
   String get displayName {
     switch (this) {
       case TaskStatus.UPCOMING:
@@ -20,7 +19,6 @@ enum TaskStatus {
     }
   }
 
-  // Renkler
   Color get color {
     switch (this) {
       case TaskStatus.UPCOMING:

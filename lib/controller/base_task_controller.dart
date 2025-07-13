@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-
-import '../screen/add_task_screen.dart';
+import '../service/date_validator_service.dart';
 
 abstract class BaseTaskController extends GetxController {
   final titleController = TextEditingController();
@@ -15,8 +14,43 @@ abstract class BaseTaskController extends GetxController {
 
   String getDurationText() {
     if (startDate.value == null || endDate.value == null) return '';
+
     final duration = endDate.value!.difference(startDate.value!);
-    return 'Task Duration: ${duration.inDays} days, ${duration.inHours % 24} hours, ${duration.inMinutes % 60} minutes';
+
+    final days = duration.inDays;
+    final hours = duration.inHours - (days * 24);
+    final minutes = duration.inMinutes - (duration.inHours * 60);
+
+    return 'Task Duration: ${days} day(s), ${hours} hour(s), ${minutes} minute(s)';
+  }
+
+
+  String? validateTitle(String? value) {
+    return (value == null || value.isEmpty) ? 'Please enter a title' : null;
+  }
+
+  bool validateForm() {
+    if (!formKey.currentState!.validate()) return false;
+
+    if (startDate.value == null || endDate.value == null) {
+      showError('Please select both start and end dates');
+      return false;
+    }
+
+    if (!DateValidatorService.isStartDateTodayOrLater(startDate.value!)) {
+      showError('Start date cannot be before now');
+      return false;
+    }
+
+    if (!DateValidatorService.isEndDateAfterStartDate(
+      startDate.value!,
+      endDate.value!,
+    )) {
+      showError('End date cannot be before start date');
+      return false;
+    }
+
+    return true;
   }
 
   Future<void> pickStartDate(BuildContext context) async {
@@ -88,9 +122,36 @@ abstract class BaseTaskController extends GetxController {
     Get.snackbar(
       'Error',
       message,
-      backgroundColor: Colors.red,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.red.shade700.withAlpha(230),
       colorText: Colors.white,
+      margin: EdgeInsets.all(12),
+      borderRadius: 12,
+      icon: Icon(Icons.error_outline, color: Colors.white),
+      titleText: Text(
+        'Error',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: TextStyle(color: Colors.white70, fontSize: 19),
+      ),
+      duration: Duration(seconds: 4),
+      forwardAnimationCurve: Curves.easeOutBack,
+      reverseAnimationCurve: Curves.easeIn,
     );
+  }
+
+
+  void resetFields() {
+    titleController.clear();
+    descriptionController.clear();
+    startDate.value = null;
+    endDate.value = null;
   }
 
   @override

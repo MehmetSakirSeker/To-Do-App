@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:todo_app/screen/todo_screen.dart';
+import 'package:todo_app/screen/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Todo App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: TodoScreen(),
+      home: MainScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
